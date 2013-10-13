@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:meld="http://www.plope.com/software/meld3">
+<head>
+  <title meld:id="title">Supervisor Status</title>
+  <link href="stylesheets/supervisor.css" rel="stylesheet" type="text/css" />
+  <link href="images/icon.png" rel="icon" type="image/png" />
+</head>
+<body>
+<div id="wrapper">
+
+  <div id="header">
+    <img src="images/supervisor.gif" alt="Supervisor status" />
+  </div>
+
+  <div meld:id="content">
+
+  <table cellspacing="0" meld:id="statustable">
+    <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Seconds since last Modification</th>
+          <th>Size</th>
+        </tr>
+    </thead>
+
+    <tbody meld:id="tbody">
+      <tr meld:id="tr" class="">
+        <td meld:id="filename_td"><a href="#" meld:id="filename_anchor" target="_blank">log.txt</a></td>
+        <td meld:id="mtime_td"><span meld:id="mtime_text">Info</span></td>
+        <td meld:id="size_td"><span meld:id="size_text">1000</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  </div>
+
+  <div class="push">
+  </div>
+</div>
+
+<div id="footer" class="clr">
+  <div class="left">
+    <a href="http://supervisord.org">Supervisor</a> <span meld:id="supervisor_version">#</span>
+  </div>
+  <div class="right">
+    &amp;copy; 2006-<span meld:id="copyright_date">#</span> <strong><a href="http://agendaless.com/">Agendaless Consulting and Contributors</a></strong>
+  </div>
+</div>
+</body>
+</html>

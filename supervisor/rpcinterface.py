@@ -2,12 +2,15 @@ import os
 import time
 import datetime
 import errno
+import glob
+import fnmatch
 
 from supervisor.options import readFile
 from supervisor.options import tailFile
 from supervisor.options import NotExecutable
 from supervisor.options import NotFound
 from supervisor.options import NoPermission
+from supervisor.options import InvalidPath
 from supervisor.options import make_namespec
 from supervisor.options import split_namespec
 from supervisor.options import VERSION
@@ -86,6 +89,55 @@ class SupervisorNamespaceRPCInterface:
         """
         self._update('getPID')
         return self.supervisord.options.get_pid()
+
+    def getLogNames(self, process_name):
+        """ Return a list of log files that are availible to be read by the readNamedLog() method.
+
+        @param string process_name
+        @return array of structs with the fields 'filename', 'size', 'mtime'
+        """
+        group, process = self._getGroupAndProcess(process_name)
+        wildcards = process.config.expose_logs
+
+        result = []
+        for wildcard in wildcards:
+            for filename in glob.glob(wildcard):
+                s = os.stat(filename)
+                result.append({'filename':filename, 'size':s.st_size, 'mtime':s.st_mtime})
+        return result
+
+    def readNamedLog(self, process_name, filename, offset, length):
+        """ Read a block from an exposed log.
+
+        @param string process_name
+        @param string filename
+        @param int offset
+        @param int length
+        @return struct with a keys data and position.
+        """
+
+        # verify this path is whitelisted
+        group, process = self._getGroupAndProcess(process_name)
+        wildcards = process.config.expose_logs
+        matching_wildcards = [w for w in wildcards if fnmatch.fnmatch(filename, w)]
+        if len(matching_wildcards) == 0:
+            raise InvalidPath("Not a valid path for %s" % process_name)
+
+        # perform the read
+        fd = open(filename, "r")
+        size = os.fstat(fd.fileno()).st_size
+        if offset < 0:
+            if size > -offset:
+                fd.seek(offset, 2)
+            else:
+                fd.seek(0, 0)
+        else:
+            fd.seek(offset, 0)
+        buffer = fd.read(length)
+        new_position = fd.tell()
+        fd.close()
+
+        return {"data": buffer, "position": new_position}
 
     def readLog(self, offset, length):
         """ Read length bytes from the main log starting at offset

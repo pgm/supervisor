@@ -801,6 +801,8 @@ class ServerOptions(Options):
         serverurl = get(section, 'serverurl', None)
         if serverurl and serverurl.strip().upper() == 'AUTO':
             serverurl = None
+        expose_logs_str = get(section, "expose_logs", "")
+        expose_logs = expose_logs_str.split(':')
 
         # find uid from "user" option
         user = get(section, 'user', None)
@@ -907,7 +909,8 @@ class ServerOptions(Options):
                 exitcodes=exitcodes,
                 redirect_stderr=redirect_stderr,
                 environment=environment,
-                serverurl=serverurl)
+                serverurl=serverurl,
+                expose_logs=expose_logs)
 
             programs.append(pconfig)
 
@@ -1641,7 +1644,7 @@ class ProcessConfig(Config):
         'stderr_logfile_backups', 'stderr_logfile_maxbytes',
         'stderr_events_enabled', 'stderr_syslog',
         'stopsignal', 'stopwaitsecs', 'stopasgroup', 'killasgroup',
-        'exitcodes', 'redirect_stderr' ]
+        'exitcodes', 'redirect_stderr', "expose_logs" ]
     optional_param_names = [ 'environment', 'serverurl' ]
 
     def __init__(self, options, **params):
@@ -2030,3 +2033,6 @@ class NoPermission(ProcessException):
     process does not possess the appropriate UNIX filesystem permission
     to execute the file. """
 
+class InvalidPath(Exception):
+    """ Indicates an attempt to read a path which was not an exposed log file.
+    """

@@ -252,13 +252,18 @@ class StatusView(MeldView):
         'href':'logtail/%s' % processname,
         'target':'_blank'
         }
+        viewlogs = {
+        'name':'View Logs',
+        'href':'logs.html?processname=%s' % processname,
+        'target':None,
+        }
         if state == ProcessStates.RUNNING:
-            actions = [restart, stop, clearlog, tailf]
+            actions = [restart, stop, clearlog, tailf, viewlogs]
         elif state in (ProcessStates.STOPPED, ProcessStates.EXITED,
                        ProcessStates.FATAL):
-            actions = [start, None, clearlog, tailf]
+            actions = [start, None, clearlog, tailf, viewlogs]
         else:
-            actions = [None, None, clearlog, tailf]
+            actions = [None, None, clearlog, tailf, viewlogs]
         return actions
 
     def css_class_for_state(self, state):
@@ -479,6 +484,79 @@ class StatusView(MeldView):
 
         return root.write_xhtmlstring()
 
+class LogsView(MeldView):
+    def render(self):
+        supervisord = self.context.supervisord
+        form = self.context.form
+        logs = []
+
+        if not 'processname' in form:
+            tail = 'No process name found'
+            processname = None
+        else:
+            processname = form['processname']
+            if not processname:
+                tail = 'No process name found'
+            else:
+                rpcinterface = SupervisorNamespaceRPCInterface(supervisord)
+                logs = rpcinterface.getLogNames(processname)
+                logs.sort(lambda a, b: -cmp(a['mtime'], b['mtime']))
+
+        root = self.clone()
+
+        title = root.findmeld('title')
+        title.content('Logs for process %s' % processname)
+
+        iterator = root.findmeld('tr').repeat(logs)
+
+        now = time.time()
+
+        for tr_element, item in iterator:
+            filename = item['filename']
+            filename_anchor = tr_element.findmeld('filename_anchor')
+            filename_anchor.content(filename)
+            filename_anchor.attributes(
+                href='log.html?processname=%s&filename=%s' % (
+                    urllib.quote(processname), urllib.quote(filename)
+                    ))
+
+            mtime = tr_element.findmeld('mtime_text')
+            mtime.content(str(now - item['mtime']))
+
+            size = tr_element.findmeld('size_text')
+            size.content(str(item['size']))
+
+        return root.write_xhtmlstring()
+
+class LogView(MeldView):
+    def render(self):
+        supervisord = self.context.supervisord
+        form = self.context.form
+
+        processname = form['processname']
+        filename = form['filename']
+        if not processname:
+            content = 'No process name found'
+        else:
+            rpcinterface = SupervisorNamespaceRPCInterface(supervisord)
+            content = rpcinterface.readNamedLog(processname, filename, -10000, 10000)
+
+        root = self.clone()
+
+        title = root.findmeld('title')
+        title.content('Process %s : %s' % (processname, filename))
+
+        tailbody = root.findmeld('tailbody')
+        tailbody.content(content['data'])
+
+        refresh_anchor = root.findmeld('refresh_anchor')
+        refresh_anchor.attributes(
+            href='log.html?processname=%s&filename=%s#bottom' % (
+                urllib.quote(processname), urllib.quote(filename))
+                )
+
+        return root.write_xhtmlstring()
+
 class OKView:
     delay = 0
     def __init__(self, context):
@@ -500,6 +578,14 @@ VIEWS = {
            'template':None,
            'view':OKView,
            },
+    'logs.html': {
+            'template':'ui/logs.html',
+            'view':LogsView,
+            },
+    'log.html': {
+            'template':'ui/tail.html',
+            'view':LogView,
+            },
     }
 
 
